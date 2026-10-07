@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UBT Teacher Admin Dashboard (FastAPI)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background-color: #f1f5f9; color: #1e293b; min-height: 100vh; display: flex; flex-direction: column; }
+    .navbar { background-color: #1e293b; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+    .nav-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .nav-tabs { display: flex; gap: 10px; }
+    .nav-tab-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); color: #cbd5e1; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .nav-tab-btn:hover { background: rgba(255,255,255,0.18); color: white; }
+    .nav-tab-btn.active { background: #0b8ec5; border-color: #0b8ec5; color: white; }
+    .container { flex: 1; padding: 24px; max-width: 1240px; margin: 0 auto; width: 100%; }
+    .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 24px; }
+    .paper-banner { background: linear-gradient(135deg, #e0f2fe, #f0f9ff); border: 1.5px solid #bae6fd; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .form-group { margin-bottom: 14px; text-align: left; }
+    .form-group label { font-size: 13px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px; }
+    .form-input, .form-textarea, .form-select { width: 100%; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; }
+    .btn { background: #0b8ec5; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn:hover { background: #0977a5; }
+    .btn-green { background: #16a34a; }
+    .btn-green:hover { background: #15803d; }
+    .btn-danger { background: #ef4444; color: white; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    th { background-color: #f8fafc; color: #475569; font-weight: 700; }
+    .badge-pass { background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 12px; }
+    .badge-fail { background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 12px; }
+    .badge-active { background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .badge-inactive { background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .badge-exam { background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .badge-practice { background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .checkbox-box { display: flex; flex-wrap: wrap; gap: 12px; background: #ffffff; padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; margin-top: 6px; }
+    .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 13.5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- Lock Screen -->
+  <div class="lock-screen" id="view-lock" style="display:flex; justify-content:center; align-items:center; min-height:80vh;">
+    <div style="background:white; border-radius:14px; padding:32px; width:100%; max-width:400px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,0.1);">
+      <div style="width:60px; height:60px; border-radius:50%; background:#e0f2fe; color:#0b8ec5; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 16px auto;">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h2 style="margin-bottom:6px;">Teacher Admin Login</h2>
+      <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Enter admin passcode to unlock.</p>
+      <div class="form-group">
+        <input type="password" class="form-input" id="inp-passcode" placeholder="Enter Admin Passcode" onkeydown="if(event.key==='Enter') verifyAdmin()">
+      </div>
+      <button class="btn" style="width:100%; justify-content:center;" onclick="verifyAdmin()">
+        <i class="fa-solid fa-unlock"></i> Unlock Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div id="view-dashboard" style="display:none; flex-direction:column; min-height:100vh;">
+    <nav class="navbar">
+      <div class="nav-title"><i class="fa-solid fa-graduation-cap"></i> UBT Admin Management (FastAPI)</div>
+      <div class="nav-tabs">
+        <button class="nav-tab-btn active" id="tab-btn-students" onclick="switchTab('students')"><i class="fa-solid fa-user-plus"></i> Student Add</button>
+        <button class="nav-tab-btn" id="tab-btn-editor" onclick="switchTab('editor')"><i class="fa-solid fa-pen-to-square"></i> Question Editor</button>
+        <button class="nav-tab-btn" id="tab-btn-results" onclick="switchTab('results')"><i class="fa-solid fa-chart-column"></i> Student Marks</button>
+      </div>
+    </nav>
+
+    <div class="container">
+      
+      <!-- TAB 1: STUDENT ADD -->
+      <div id="tab-students" class="card">
+        <h2 style="font-size:18px; margin-bottom:16px;">Register New Student</h2>
+        <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:20px; margin-bottom:24px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+            <div class="form-group"><label>Card No / Index:</label><input type="text" class="form-input" id="st-card" placeholder="KOR-1001"></div>
+            <div class="form-group"><label>Full Name:</label><input type="text" class="form-input" id="st-name" placeholder="Kamal Perera"></div>
+            <div class="form-group"><label>NIC Number:</label><input type="text" class="form-input" id="st-nic" placeholder="200012345678"></div>
+            <div class="form-group">
+              <label>Student PIN:</label>
+              <div style="display:flex; gap:6px;">
+                <input type="text" class="form-input" id="st-passcode" placeholder="8492">
+                <button class="btn" type="button" onclick="document.getElementById('st-passcode').value=Math.floor(1000+Math.random()*9000)"><i class="fa-solid fa-rotate"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:14px;">
+            <label>Assign Allowed Papers:</label>
+            <div class="checkbox-box" id="student-papers-checkboxes"></div>
+          </div>
+          <div style="margin-top:18px; text-align:right;">
+            <button class="btn btn-green" onclick="handleAddNewStudent()"><i class="fa-solid fa-user-check"></i> Save Student</button>
+          </div>
+        </div>
+
+        <h3 style="font-size:16px; margin-bottom:10px;">Registered Students List</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>Card No</th><th>Name</th><th>NIC</th><th>PIN</th><th>Allowed Papers</th><th>Date</th><th>Action</th></tr>
+            </thead>
+            <tbody id="students-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: QUESTION EDITOR -->
+      <div id="tab-editor" class="card" style="display:none;">
+        <div class="paper-banner">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-weight:700;"><i class="fa-solid fa-folder-open"></i> Paper:</span>
+            <select class="form-select" id="paper-selector" style="width:210px;" onchange="switchExamPaper(this.value)"></select>
+            <span id="paper-status-badge"></span>
+            <span id="paper-mode-badge"></span>
+            <button class="btn" style="padding:7px 11px; font-size:13px; background:#475569;" onclick="toggleCurrentPaperStatus()"><i class="fa-solid fa-power-off"></i> Toggle Status</button>
+            <button class="btn btn-danger" style="padding:7px 12px; font-size:13px;" onclick="promptDeleteCurrentPaper()"><i class="fa-solid fa-trash-can"></i> Delete</button>
+          </div>
+          <button class="btn btn-green" onclick="promptCreateNewPaper()"><i class="fa-solid fa-plus"></i> Create New Paper</button>
+        </div>
+
+        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:12px 16px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="font-weight:700; font-size:13px;">Exam Mode:</label>
+            <select class="form-select" id="paper-mode-select" style="width:190px;" onchange="handleModeChangeUI(this.value)">
+              <option value="EXAM">Official Exam (1 Attempt)</option>
+              <option value="PRACTICE">Practice Mode (Multi Attempt)</option>
+            </select>
+            <span id="max-attempts-wrap" style="display:none; align-items:center; gap:6px;">
+              <label style="font-weight:700; font-size:13px;">Attempts:</label>
+              <input type="number" class="form-input" id="paper-max-attempts-inp" min="1" max="20" value="3" style="width:75px;">
+            </span>
+          </div>
+          <button class="btn" style="background:#0284c7;" onclick="saveCurrentPaperModeSettings()"><i class="fa-solid fa-check"></i> Apply Mode</button>
+        </div>
+
+        <h2 style="font-size:18px; margin-bottom:14px;">Edit 40 Questions (<span id="ed-paper-title-label"></span>)</h2>
+        <div style="display:flex; gap:14px;">
+          <div class="form-group" style="flex:1;"><label>Select Question (1 ~ 40):</label><select class="form-select" id="ed-selector" onchange="loadQuestion(this.value)"></select></div>
+          <div class="form-group" style="flex:1;"><label>Section Category:</label><input type="text" class="form-input" id="ed-category" disabled></div>
+        </div>
+
+        <div class="form-group"><label>Instruction Text:</label><input type="text" class="form-input" id="ed-instruction"></div>
+        <div class="form-group"><label>Question Prompt Text:</label><input type="text" class="form-input" id="ed-prompt"></div>
+        <div class="form-group"><label>Passage / Reading Text:</label><textarea class="form-textarea" rows="3" id="ed-passage"></textarea></div>
+        <div class="form-group"><label>Main Image URL / Base64:</label><input type="text" class="form-input" id="ed-image"></div>
+        <div class="form-group"><label>Listening Audio Script / URL:</label><input type="text" class="form-input" id="ed-audio"></div>
+
+        <hr style="margin:16px 0;">
+        <label style="font-weight:700; display:block; margin-bottom:8px;">Options (Answers 1 to 4):</label>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; gap:6px; align-items:center;"><span style="width:20px; font-weight:bold;">1.</span><input type="text" class="form-input" id="ed-opt-0" placeholder="Text"><input type="text" class="form-input" id="ed-optimg-0" placeholder="Image URL"><input type="text" class="form-input" id="ed-optaudio-0" placeholder="Audio URL"></div>
+          <div style="display:flex; gap:6px; align-items:center;"><span style="width:20px; font-weight:bold;">2.</span><input type="text" class="form-input" id="ed-opt-1" placeholder="Text"><input type="text" class="form-input" id="ed-optimg-1" placeholder="Image URL"><input type="text" class="form-input" id="ed-optaudio-1" placeholder="Audio URL"></div>
+          <div style="display:flex; gap:6px; align-items:center;"><span style="width:20px; font-weight:bold;">3.</span><input type="text" class="form-input" id="ed-opt-2" placeholder="Text"><input type="text" class="form-input" id="ed-optimg-2" placeholder="Image URL"><input type="text" class="form-input" id="ed-optaudio-2" placeholder="Audio URL"></div>
+          <div style="display:flex; gap:6px; align-items:center;"><span style="width:20px; font-weight:bold;">4.</span><input type="text" class="form-input" id="ed-opt-3" placeholder="Text"><input type="text" class="form-input" id="ed-optimg-3" placeholder="Image URL"><input type="text" class="form-input" id="ed-optaudio-3" placeholder="Audio URL"></div>
+        </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label>Correct Answer:</label>
+          <select class="form-select" id="ed-correct">
+            <option value="0">Option 1</option><option value="1">Option 2</option><option value="2">Option 3</option><option value="3">Option 4</option>
+          </select>
+        </div>
+
+        <div style="text-align:right; margin-top:20px;">
+          <button class="btn btn-green" onclick="saveCurrentQuestion()"><i class="fa-solid fa-floppy-disk"></i> Save Question to Server</button>
+        </div>
+      </div>
+
+      <!-- TAB 3: RESULTS -->
+      <div id="tab-results" class="card" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h2>Official Exam Results Report</h2>
+          <button class="btn btn-danger" onclick="promptClearResults()"><i class="fa-solid fa-trash"></i> Clear Results</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Paper</th><th>Card No</th><th>Name</th><th>Marks</th><th>%</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="results-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let adminPasscode = "";
+    let examPapers = [];
+    let currentPaperId = "Paper_1";
+    let examQuestions = [];
+    let allResultsData = [];
+    let allStudentsData = [];
+
+    async function verifyAdmin() {
+      const code = document.getElementById('inp-passcode').value.trim();
+      if (!code) return alert("Enter Passcode!");
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: code })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          adminPasscode = code;
+          examPapers = data.papers;
+          currentPaperId = examPapers[0]?.paperId || "Paper_1";
+          examQuestions = data.initialQuestions;
+          allResultsData = data.results;
+          allStudentsData = data.students;
+
+          populatePaperDropdown();
+          renderStudentPaperCheckboxes();
+          populateQuestionSelector();
+          loadQuestion(0);
+          renderStudentsTable(allStudentsData);
+          renderResultsTable(allResultsData);
+
+          document.getElementById('view-lock').style.display = 'none';
+          document.getElementById('view-dashboard').style.display = 'flex';
+        } else {
+          alert(data.detail || "Login Failed");
+        }
+      } catch(e) {
+        alert("Server error");
+      }
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-students').style.display = (tab === 'students') ? 'block' : 'none';
+      document.getElementById('tab-editor').style.display = (tab === 'editor') ? 'block' : 'none';
+      document.getElementById('tab-results').style.display = (tab === 'results') ? 'block' : 'none';
+      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`tab-btn-${tab}`).classList.add('active');
+    }
+
+    function renderStudentPaperCheckboxes() {
+      const container = document.getElementById('student-papers-checkboxes');
+      container.innerHTML = `<label class="checkbox-item" style="font-weight:bold; color:#0b8ec5;"><input type="checkbox" id="chk-all" checked onchange="document.querySelectorAll('.p-chk').forEach(c=>c.checked=this.checked)"> All Papers</label>`;
+      examPapers.forEach(p => {
+        container.innerHTML += `<label class="checkbox-item"><input type="checkbox" class="p-chk" value="${p.paperId}" checked> ${p.title}</label>`;
+      });
+    }
+
+    async function handleAddNewStudent() {
+      const card = document.getElementById('st-card').value.trim();
+      const name = document.getElementById('st-name').value.trim();
+      const nic = document.getElementById('st-nic').value.trim();
+      const pass = document.getElementById('st-passcode').value.trim();
+      const isAll = document.getElementById('chk-all').checked;
+      let allowed = 'ALL';
+      if (!isAll) {
+        const sel = [];
+        document.querySelectorAll('.p-chk:checked').forEach(c => sel.push(c.value));
+        allowed = sel.join(',');
+      }
+
+      if (!card || !name || !pass) return alert("Fill card, name and passcode!");
+
+      const res = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardNo: card, name: name, nic: nic, passcode: pass, allowedPapers: allowed })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Student added!");
+        refreshAdminData();
+      } else alert(data.detail);
+    }
+
+    function renderStudentsTable(students) {
+      const tbody = document.getElementById('students-table-body');
+      tbody.innerHTML = '';
+      students.forEach(s => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td><b>${s.cardNo}</b></td><td>${s.name}</td><td>${s.nic}</td><td>${s.passcode}</td><td>${s.allowedPapers}</td><td>${s.date}</td><td><button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteStudent('${s.cardNo}')"><i class="fa-solid fa-trash"></i></button></td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function deleteStudent(cardNo) {
+      if (!confirm("Delete student?")) return;
+      await fetch(`/api/admin/students/${cardNo}`, { method: 'DELETE' });
+      refreshAdminData();
+    }
+
+    function populatePaperDropdown() {
+      const sel = document.getElementById('paper-selector');
+      sel.innerHTML = '';
+      examPapers.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.paperId;
+        opt.textContent = `${p.title} (${p.status})`;
+        sel.appendChild(opt);
+      });
+      sel.value = currentPaperId;
+      updatePaperUI();
+    }
+
+    function updatePaperUI() {
+      const cur = examPapers.find(p => p.paperId === currentPaperId);
+      if (!cur) return;
+      document.getElementById('ed-paper-title-label').textContent = cur.title;
+      document.getElementById('paper-status-badge').className = cur.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive';
+      document.getElementById('paper-status-badge').textContent = cur.status;
+      document.getElementById('paper-mode-badge').className = cur.mode === 'PRACTICE' ? 'badge-practice' : 'badge-exam';
+      document.getElementById('paper-mode-badge').textContent = cur.mode;
+      document.getElementById('paper-mode-select').value = cur.mode;
+      document.getElementById('paper-max-attempts-inp').value = cur.maxAttempts;
+      handleModeChangeUI(cur.mode);
+    }
+
+    function handleModeChangeUI(m) {
+      document.getElementById('max-attempts-wrap').style.display = (m === 'PRACTICE') ? 'inline-flex' : 'none';
+    }
+
+    async function saveCurrentPaperModeSettings() {
+      const mode = document.getElementById('paper-mode-select').value;
+      const att = parseInt(document.getElementById('paper-max-attempts-inp').value, 10);
+      await fetch(`/api/admin/papers/${currentPaperId}/mode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: mode, maxAttempts: att })
+      });
+      alert("Mode Updated!");
+      refreshAdminData();
+    }
+
+    async function switchExamPaper(pId) {
+      currentPaperId = pId;
+      updatePaperUI();
+      const res = await fetch(`/api/admin/papers/${pId}/questions`);
+      examQuestions = await res.json();
+      populateQuestionSelector();
+      loadQuestion(0);
+    }
+
+    async function promptCreateNewPaper() {
+      const name = prompt("Enter new paper title:");
+      if (!name) return;
+      await fetch('/api/admin/papers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: name })
+      });
+      refreshAdminData();
+    }
+
+    async function promptDeleteCurrentPaper() {
+      if (!confirm("Are you sure?")) return;
+      const res = await fetch(`/api/admin/papers/${currentPaperId}`, { method: 'DELETE' });
+      if (res.ok) refreshAdminData();
+      else alert("Cannot delete final paper");
+    }
+
+    async function toggleCurrentPaperStatus() {
+      const cur = examPapers.find(p => p.paperId === currentPaperId);
+      const newStat = cur.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      await fetch(`/api/admin/papers/${currentPaperId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStat })
+      });
+      refreshAdminData();
+    }
+
+    function populateQuestionSelector() {
+      const sel = document.getElementById('ed-selector');
+      sel.innerHTML = '';
+      examQuestions.forEach((q, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `Question ${q.id} (${q.type.toUpperCase()})`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function loadQuestion(idx) {
+      const q = examQuestions[idx];
+      document.getElementById('ed-category').value = q.type.toUpperCase();
+      document.getElementById('ed-instruction').value = q.instruction || '';
+      document.getElementById('ed-prompt').value = q.prompt || '';
+      document.getElementById('ed-passage').value = q.passage || '';
+      document.getElementById('ed-image').value = q.image || '';
+      document.getElementById('ed-audio').value = q.audioScript || '';
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`ed-opt-${i}`).value = q.options[i]?.text || '';
+        document.getElementById(`ed-optimg-${i}`).value = q.options[i]?.image || '';
+        document.getElementById(`ed-optaudio-${i}`).value = q.options[i]?.audio || '';
+      }
+      document.getElementById('ed-correct').value = q.correctAnswer || 0;
+    }
+
+    async function saveCurrentQuestion() {
+      const idx = parseInt(document.getElementById('ed-selector').value, 10);
+      const q = examQuestions[idx];
+      q.instruction = document.getElementById('ed-instruction').value;
+      q.prompt = document.getElementById('ed-prompt').value;
+      q.passage = document.getElementById('ed-passage').value;
+      q.image = document.getElementById('ed-image').value;
+      q.audioScript = document.getElementById('ed-audio').value;
+      for (let i = 0; i < 4; i++) {
+        q.options[i] = {
+          text: document.getElementById(`ed-opt-${i}`).value,
+          image: document.getElementById(`ed-optimg-${i}`).value,
+          audio: document.getElementById(`ed-optaudio-${i}`).value
+        };
+      }
+      q.correctAnswer = parseInt(document.getElementById('ed-correct').value, 10);
+
+      await fetch(`/api/admin/papers/${currentPaperId}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(examQuestions)
+      });
+      alert(`Question ${q.id} Saved!`);
+    }
+
+    function renderResultsTable(results) {
+      const tbody = document.getElementById('results-table-body');
+      tbody.innerHTML = '';
+      results.forEach(r => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${r.time}</td><td>${r.paperTitle}</td><td>${r.cardNo}</td><td>${r.name}</td><td><b>${r.score}/40</b></td><td>${r.percentage}</td><td><span class="${r.status==='PASS'?'badge-pass':'badge-fail'}">${r.status}</span></td><td><button class="btn btn-warning" onclick="resetAttempt('${r.cardNo}')">Reset</button></td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function resetAttempt(cardNo) {
+      if (!confirm("Reset attempt?")) return;
+      await fetch('/api/admin/results/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardNo: cardNo })
+      });
+      refreshAdminData();
+    }
+
+    async function promptClearResults() {
+      if (!confirm("Clear all results?")) return;
+      await fetch('/api/admin/results/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paperTitle: 'ALL' })
+      });
+      refreshAdminData();
+    }
+
+    async function refreshAdminData() {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: adminPasscode })
+      });
+      const data = await res.json();
+      examPapers = data.papers;
+      allStudentsData = data.students;
+      allResultsData = data.results;
+      populatePaperDropdown();
+      renderStudentsTable(allStudentsData);
+      renderResultsTable(allResultsData);
+    }
+  </script>
+</body>
+</html>

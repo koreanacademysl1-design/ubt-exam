@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>EPS TOPIK UBT Exam Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #f1f5f9; color: #1e293b; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; overflow-x: hidden; }
+    #view-exam { display: none; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; background-color: #f8fafc; }
+    .header { background-color: #0b8ec5; color: #ffffff; display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; flex-shrink: 0; }
+    .header-item { display: flex; align-items: center; white-space: nowrap; }
+    .timer-badge { background: rgba(0, 0, 0, 0.2); padding: 4px 10px; border-radius: 6px; font-weight: 700; letter-spacing: 0.5px; font-size: 14px; }
+    .main-container { flex: 1; display: flex; padding: 14px 16px; gap: 16px; background-color: #ffffff; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .left-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #e2e8f0; padding-right: 14px; }
+    .right-panel { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 6px; }
+    @media (max-width: 768px) {
+      .header { padding: 8px 10px; font-size: 12px; }
+      .main-container { flex-direction: column; padding: 10px 12px; gap: 12px; overflow-y: auto; }
+      .left-panel { border-right: none; border-bottom: 1px dashed #cbd5e1; padding-right: 0; padding-bottom: 14px; }
+      .right-panel { padding-left: 0; justify-content: flex-start; }
+    }
+    .instruction-box { background-color: #eaf1fb; border-left: 4px solid #005a9e; padding: 8px 12px; border-radius: 4px; font-size: 13.5px; color: #1e293b; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .question-prompt { font-size: 15.5px; font-weight: 700; color: #1e293b; margin-bottom: 8px; line-height: 1.4; }
+    .passage-box { background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #334155; line-height: 1.5; margin-bottom: 10px; white-space: pre-wrap; user-select: text; }
+    .media-container { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 140px; margin: 4px 0; }
+    .zoomable-img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; cursor: pointer; }
+    .audio-player-box { background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 20px; padding: 8px 18px; display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; font-weight: 600; font-size: 14px; color: #15803d; transition: all 0.2s; }
+    .audio-player-box.disabled { background: #f1f5f9 !important; border-color: #cbd5e1 !important; color: #94a3b8 !important; cursor: not-allowed !important; }
+    .opt-audio-btn { width: 34px; height: 34px; padding: 0; border-radius: 50%; background: #e2e8f0; color: #334155; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+    .opt-audio-btn:hover:not(.disabled) { background: #0b8ec5; color: white; }
+    .opt-audio-btn.disabled { background: #f1f5f9 !important; color: #cbd5e1 !important; cursor: not-allowed !important; }
+    .option-card { display: flex; align-items: center; padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; background-color: #ffffff; cursor: pointer; transition: all 0.15s ease; min-height: 48px; }
+    .option-card:active { transform: scale(0.99); }
+    .option-card.selected { border-color: #0b8ec5; background-color: #e0f2fe; }
+    .option-number { width: 32px; height: 32px; border: 1.5px solid #64748b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #334155; margin-right: 12px; background-color: #ffffff; flex-shrink: 0; }
+    .option-card.selected .option-number { border-color: #0b8ec5; color: #0b8ec5; }
+    .option-content-wrap { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .option-text { font-size: 14.5px; color: #1e293b; font-weight: 500; }
+    .option-text u { text-decoration: underline; font-weight: 700; color: #0f172a; }
+    .option-img { max-height: 46px; max-width: 80px; object-fit: contain; border-radius: 4px; border: 1px solid #cbd5e1; }
+    .footer { background-color: #f1f5f9; padding: 10px 14px; display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #e2e8f0; flex-shrink: 0; }
+    .btn { background-color: #0b8ec5; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn:active { background-color: #0977a5; }
+    #view-paper-page { display: none; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+    .dash-navbar { background-color: #0b8ec5; color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .dash-container { max-width: 850px; margin: 24px auto; padding: 0 16px; width: 100%; flex: 1; }
+    .dash-header-card { background: white; border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .paper-item-card { background: white; border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 18px 20px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: all 0.2s ease; }
+    .paper-item-card:hover:not(.locked) { border-color: #0b8ec5; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(11, 142, 197, 0.12); }
+    .paper-item-card.locked { background: #f8fafc; opacity: 0.85; cursor: not-allowed; border-color: #fecaca; }
+    .badge-bar { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+    .badge-pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px; }
+    .badge-exam-active { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-exam-done { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-practice-active { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-practice-done { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(3px); z-index: 100; justify-content: center; align-items: center; padding: 16px; }
+    .dialog-box { background: #ffffff; border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 440px; text-align: center; box-shadow: 0 12px 36px rgba(0,0,0,0.25); }
+    .form-group { text-align: left; margin-bottom: 14px; }
+    .form-group label { font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 5px; }
+    .form-input { width: 100%; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 11px 12px; font-size: 14px; outline: none; }
+    .form-input:focus { border-color: #0b8ec5; }
+    .progress-bar-container { width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin: 16px 0 8px 0; }
+    .progress-bar-fill { width: 0%; height: 100%; background: #0b8ec5; border-radius: 10px; transition: width 0.3s ease; }
+    .results-table { width: 100%; border-collapse: collapse; margin: 16px 0 20px 0; text-align: left; font-size: 14px; }
+    .results-table td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; }
+    .results-table td:first-child { color: #64748b; font-weight: 600; width: 45%; }
+    .results-table td:last-child { color: #0f172a; font-weight: 700; }
+    .grid-view-card { background: #ffffff; width: 100%; max-width: 860px; height: 90vh; height: 90dvh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+    .grid-header { background: #0b8ec5; color: white; padding: 10px 14px; display: flex; justify-content: space-between; font-weight: 600; font-size: 13px; }
+    .grid-body { flex: 1; display: flex; padding: 12px; gap: 12px; overflow-y: auto; }
+    @media (max-width: 640px) { .grid-body { flex-direction: column; } }
+    .section-column { flex: 1; display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .section-title { font-size: 14.5px; font-weight: 700; color: #0b8ec5; text-align: center; margin-bottom: 10px; }
+    .q-matrix { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .q-slot { aspect-ratio: 1.3; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #334155; cursor: pointer; }
+    .q-slot.solved { background: #0b8ec5; color: white; border-color: #0b8ec5; }
+    .q-slot.current { outline: 2.5px solid #f97316; }
+    .image-zoom-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 25, 41, 0.78); z-index: 200; justify-content: center; align-items: center; padding: 12px; }
+    .image-zoom-box { background: #ffffff; width: 95%; max-width: 700px; height: 80vh; height: 80dvh; border-radius: 12px; position: relative; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .image-zoom-close { position: absolute; top: 10px; right: 12px; background: transparent; border: none; font-size: 24px; color: #334155; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. LOGIN POPUP -->
+  <div class="modal-overlay" id="login-modal" style="display: flex;">
+    <div class="dialog-box">
+      <div style="width: 54px; height: 54px; border-radius: 50%; background: #e0f2fe; color: #0b8ec5; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto;">
+        <i class="fa-solid fa-id-card"></i>
+      </div>
+      <h2 style="color: #0f172a; font-size: 19px; margin-bottom: 4px;">Student Exam Login</h2>
+      <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">EPS TOPIK UBT Online Exam Portal</p>
+
+      <div class="form-group">
+        <label>කාඩ්පත් අංකය (Card No / Index):</label>
+        <input type="text" class="form-input" id="inp-card" placeholder="උදා: KOR-1001" autofocus>
+      </div>
+
+      <div class="form-group">
+        <label>සිසුවාගේ Passcode (Student PIN):</label>
+        <input type="password" class="form-input" id="inp-pass" placeholder="Enter your 4-digit Passcode" onkeydown="if(event.key==='Enter') handleStudentLogin()">
+      </div>
+
+      <button class="btn" id="btn-login-submit" style="width: 100%; padding: 11px; font-size: 15px; border-radius: 8px;" onclick="handleStudentLogin()">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i> Verify & Login
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. SELECT PAPER PAGE -->
+  <div id="view-paper-page">
+    <nav class="dash-navbar">
+      <div style="font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-graduation-cap"></i> EPS TOPIK UBT Portal
+      </div>
+      <div style="font-size: 13.5px; display: flex; align-items: center; gap: 14px;">
+        <span id="dash-student-greeting"><i class="fa-regular fa-user"></i> Student</span>
+        <button onclick="handleStudentLogout()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight:600;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </nav>
+
+    <div class="dash-container">
+      <div class="dash-header-card">
+        <div>
+          <h2 style="font-size: 20px; color: #0f172a; margin-bottom: 4px;">Select Your Exam Paper</h2>
+          <p style="color: #64748b; font-size: 13.5px;">ඔබට අවසර ලබා දී ඇති විභාග ප්‍රශ්න පත්‍ර ලැයිස්තුව පහත දැක්වේ:</p>
+        </div>
+        <button class="btn" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; padding:7px 14px; font-size:13px;" onclick="loadActivePapersForStudent()">
+          <i class="fa-solid fa-rotate"></i> Refresh Papers
+        </button>
+      </div>
+      <div id="papers-list-container"></div>
+    </div>
+  </div>
+
+  <!-- 3. DOWNLOADING PROGRESS MODAL -->
+  <div class="modal-overlay" id="download-progress-modal">
+    <div class="dialog-box">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: #e0f2fe; color: #0b8ec5; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 12px auto;">
+        <i class="fa-solid fa-cloud-arrow-down fa-bounce"></i>
+      </div>
+      <h2 style="color: #0f172a; font-size: 17px; margin-bottom: 4px;">Downloading Exam Paper</h2>
+      <p style="color: #64748b; font-size: 13px;" id="download-status-text">Downloading questions to device storage...</p>
+
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="download-progress-fill"></div>
+      </div>
+      <span style="font-size: 12px; color: #94a3b8;" id="download-percent-label">0% Completed</span>
+    </div>
+  </div>
+
+  <!-- 4. CONFIRMATION POPUP -->
+  <div class="modal-overlay" id="ready-start-modal">
+    <div class="dialog-box">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 12px auto;">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2 style="color: #0f172a; font-size: 18px; margin-bottom: 6px;">Exam Paper Ready!</h2>
+      <p style="color: #475569; font-size: 13.5px; margin-bottom: 16px;">
+        ප්‍රශ්න පත්‍රය ඔබගේ උපකරණයට සාර්ථකව බාගත විය. විභාගය ආරම්භ කිරීමට ඔබ සූදානම්ද?
+      </p>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:20px; font-size:13px; text-align:left;">
+        <div><b>ප්‍රශ්න පත්‍රය:</b> <span id="ready-paper-title">Free UBT</span></div>
+        <div style="margin-top:4px;"><b>කාලය:</b> විනාඩි 50 (50 Minutes)</div>
+        <div style="margin-top:4px;"><b>ප්‍රශ්න ගණන:</b> 40 Questions (Reading + Listening)</div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:#64748b; border-radius:8px;" onclick="closeReadyStartModal()">Cancel</button>
+        <button class="btn" style="flex:2; background:#16a34a; border-radius:8px; font-size:15px;" onclick="confirmAndLaunchExam()">
+          <i class="fa-solid fa-play"></i> Start Exam Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. SUBMITTING MODAL -->
+  <div class="modal-overlay" id="sync-submitting-modal">
+    <div class="dialog-box">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: #e0f2fe; color: #0b8ec5; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 14px auto;">
+        <i class="fa-solid fa-arrows-rotate fa-spin" id="sync-status-icon"></i>
+      </div>
+      <h2 style="color: #0f172a; font-size: 18px; margin-bottom: 6px;" id="sync-status-title">Submitting Exam...</h2>
+      <p style="color: #64748b; font-size: 13.5px;" id="sync-status-msg">
+        ඔබගේ පිළිතුරු Database එකට ආරක්ෂිතව යවමින් පවතී. රැඳී සිටින්න...
+      </p>
+    </div>
+  </div>
+
+  <!-- 6. ACTIVE EXAM VIEW -->
+  <div id="view-exam">
+    <header class="header">
+      <div class="header-item">Remaining: <span id="hdr-remaining" style="margin-left: 4px; font-weight: 700;">40</span></div>
+      <div class="header-item" id="disp-student-name" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis;">Student</div>
+      <div class="header-item" id="disp-paper-title" style="font-weight: 700; color: #fef08a;">Free UBT - 01</div>
+      <div class="header-item timer-badge"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i><span id="timer">50:00</span></div>
+    </header>
+
+    <main class="main-container">
+      <section class="left-panel">
+        <div class="instruction-box" id="disp-instruction">Loading questions...</div>
+        <div class="question-prompt" id="disp-prompt">1.</div>
+        <div class="passage-box" id="disp-passage" style="display: none;"></div>
+        <div class="media-container">
+          <div id="media-content"></div>
+        </div>
+      </section>
+
+      <section class="right-panel">
+        <div id="options-holder" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <button class="btn" id="btn-left" onclick="handleLeftBtn()"></button>
+      <button class="btn" id="btn-center" onclick="openGridModal()"><i class="fa-solid fa-bars-staggered"></i> Total Questions</button>
+      <button class="btn" id="btn-right" onclick="handleRightBtn()"></button>
+    </footer>
+  </div>
+
+  <!-- 7. FINAL RESULTS MODAL -->
+  <div class="modal-overlay" id="exam-results-modal">
+    <div class="dialog-box" style="max-width: 480px; padding: 32px 24px;">
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0f2fe; color: #0b8ec5; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 14px auto;">
+        <i class="fa-solid fa-award"></i>
+      </div>
+      <h2 style="color: #0f172a; font-size: 20px; margin-bottom: 4px;">Exam Completed!</h2>
+      <p style="color: #64748b; font-size: 13px;">විභාග ප්‍රතිඵල සාරාංශය (Official Results Report)</p>
+
+      <table class="results-table">
+        <tr><td><i class="fa-solid fa-user"></i> සිසුවාගේ නම:</td><td id="res-student-name">-</td></tr>
+        <tr><td><i class="fa-solid fa-id-card"></i> ID / NIC Number:</td><td id="res-student-nic">-</td></tr>
+        <tr><td><i class="fa-solid fa-barcode"></i> පන්ති කාඩ්පත් අංකය:</td><td id="res-student-card">-</td></tr>
+        <tr><td><i class="fa-solid fa-file-lines"></i> ප්‍රශ්න පත්‍රය:</td><td id="res-paper-title">-</td></tr>
+        <tr><td><i class="fa-solid fa-circle-check" style="color:#16a34a;"></i> නිවැරදි පිළිතුරු:</td><td><span id="res-correct-count" style="font-size:16px; color:#16a34a;">0</span> / 40</td></tr>
+        <tr><td><i class="fa-solid fa-percent" style="color:#0b8ec5;"></i> ලකුණු (100% න්):</td><td id="res-score-percentage" style="font-size:18px; color:#0b8ec5;">0%</td></tr>
+        <tr><td><i class="fa-solid fa-trophy"></i> ප්‍රතිඵලය (Status):</td><td id="res-exam-status">-</td></tr>
+      </table>
+
+      <button class="btn" style="width: 100%; padding: 11px; font-size: 15px; border-radius: 8px;" onclick="closeResultsAndExit()">
+        <i class="fa-solid fa-house"></i> Finish & Return Home
+      </button>
+    </div>
+  </div>
+
+  <!-- Total Questions Modal -->
+  <div class="modal-overlay" id="grid-modal">
+    <div class="grid-view-card">
+      <div class="grid-header">
+        <div>Total: 40</div>
+        <div>Solved: <span id="grid-solved">0</span></div>
+        <div>Unsolved: <span id="grid-unsolved">40</span></div>
+      </div>
+      <div class="grid-body">
+        <div class="section-column">
+          <div class="section-title">Reading (1 ~ 20)</div>
+          <div class="q-matrix" id="reading-matrix"></div>
+        </div>
+        <div class="section-column">
+          <div class="section-title">Listening (21 ~ 40)</div>
+          <div class="q-matrix" id="listening-matrix"></div>
+        </div>
+      </div>
+      <div class="footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; justify-content: flex-end; gap: 8px;">
+        <button class="btn" style="flex: none; padding: 9px 18px; background: #64748b;" onclick="closeGridModal()">Back</button>
+        <button class="btn" style="flex: none; padding: 9px 18px;" onclick="submitExam(false)">Submit Exam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Zoom Modal -->
+  <div class="image-zoom-overlay" id="image-zoom-overlay" onclick="closeImageZoom()">
+    <div class="image-zoom-box" onclick="event.stopPropagation()">
+      <button class="image-zoom-close" onclick="closeImageZoom()">&times;</button>
+      <div id="image-zoom-target-wrapper" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
+    </div>
+  </div>
+
+  <script>
+    const urlDirectPaperId = "{{ direct_paper_id }}";
+
+    let questions = [];
+    let currentIndex = 0;
+    let userAnswers = {};
+    let studentCardNo = "";
+    let studentName = "";
+    let studentNic = "";
+    let studentAllowedPapers = "ALL";
+    let selectedPaperId = "";
+    let selectedPaperTitle = "";
+
+    let timerSeconds = 50 * 60;
+    let timerInterval = null;
+    const playedAudios = new Set();
+    let currentActiveAudio = null;
+
+    const CACHE_PREFIX = "UBT_FASTAPI_VAULT_";
+    const ANSWERS_PREFIX = "UBT_ANS_";
+
+    function saveAnswersToLocalStorage() {
+      try {
+        if (selectedPaperId && studentCardNo) {
+          localStorage.setItem(ANSWERS_PREFIX + studentCardNo + "_" + selectedPaperId, JSON.stringify(userAnswers));
+        }
+      } catch(e) {}
+    }
+
+    function loadAnswersFromLocalStorage() {
+      try {
+        if (selectedPaperId && studentCardNo) {
+          const saved = localStorage.getItem(ANSWERS_PREFIX + studentCardNo + "_" + selectedPaperId);
+          if (saved) userAnswers = JSON.parse(saved);
+        }
+      } catch(e) {}
+    }
+
+    function cleanExamStorage() {
+      try {
+        if (selectedPaperId) {
+          sessionStorage.removeItem(CACHE_PREFIX + selectedPaperId);
+          if (studentCardNo) {
+            localStorage.removeItem(ANSWERS_PREFIX + studentCardNo + "_" + selectedPaperId);
+          }
+        }
+      } catch(e) {}
+    }
+
+    async function handleStudentLogin() {
+      const cardVal = document.getElementById('inp-card').value.trim();
+      const passVal = document.getElementById('inp-pass').value.trim();
+
+      if (!cardVal || !passVal) {
+        alert("කාඩ්පත් අංකය සහ Passcode එක ඇතුළත් කරන්න.");
+        return;
+      }
+
+      const btn = document.getElementById('btn-login-submit');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/student/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cardNo: cardVal, passcode: passVal })
+        });
+        const data = await res.json();
+
+        btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Verify & Login';
+        btn.disabled = false;
+
+        if (res.ok) {
+          studentCardNo = data.cardNo;
+          studentName = data.name;
+          studentNic = data.nic;
+          studentAllowedPapers = data.allowedPapers;
+
+          document.getElementById('disp-student-name').textContent = studentName;
+          document.getElementById('dash-student-greeting').innerHTML = `<i class="fa-regular fa-user"></i> ${studentName} (${studentCardNo})`;
+          document.getElementById('login-modal').style.display = 'none';
+
+          if (urlDirectPaperId && urlDirectPaperId.trim() !== '') {
+            triggerPaperDownload(urlDirectPaperId.trim(), "Linked Exam");
+          } else {
+            showPaperSelectionWebPage();
+          }
+        } else {
+          alert(data.detail || "Login failed");
+        }
+      } catch(err) {
+        btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Verify & Login';
+        btn.disabled = false;
+        alert("Network Error: සම්බන්ධතාවය අසාර්ථකයි.");
+      }
+    }
+
+    function handleStudentLogout() {
+      cleanExamStorage();
+      studentCardNo = "";
+      studentName = "";
+      document.getElementById('inp-card').value = '';
+      document.getElementById('inp-pass').value = '';
+      document.getElementById('view-paper-page').style.display = 'none';
+      document.getElementById('view-exam').style.display = 'none';
+      document.getElementById('login-modal').style.display = 'flex';
+    }
+
+    function showPaperSelectionWebPage() {
+      document.getElementById('view-paper-page').style.display = 'flex';
+      loadActivePapersForStudent();
+    }
+
+    async function loadActivePapersForStudent() {
+      const container = document.getElementById('papers-list-container');
+      container.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;"><i class="fa-solid fa-spinner fa-spin"></i> Loading exam papers...</div>';
+
+      try {
+        const res = await fetch('/api/student/papers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cardNo: studentCardNo, allowedPapers: studentAllowedPapers })
+        });
+        const paperList = await res.json();
+        container.innerHTML = '';
+
+        if (!paperList || paperList.length === 0) {
+          container.innerHTML = '<div style="text-align:center; background:white; border-radius:12px; padding:36px; border:1px solid #e2e8f0; color:#ef4444;"><i class="fa-solid fa-lock" style="font-size:28px; margin-bottom:10px;"></i><br>ඔබට කිරීමට අවසර ඇති ප්‍රශ්න පත්‍ර නොමැත.</div>';
+          return;
+        }
+
+        paperList.forEach(p => {
+          const card = document.createElement('div');
+          card.className = `paper-item-card ${p.isAllDone ? 'locked' : ''}`;
+
+          let officialBadge = p.isOfficialDone
+            ? `<span class="badge-pill badge-exam-done"><i class="fa-solid fa-circle-xmark"></i> Official Exam: Completed</span>`
+            : `<span class="badge-pill badge-exam-active"><i class="fa-solid fa-clock"></i> Official Exam: 1 Attempt</span>`;
+
+          let practiceBadge = '';
+          if (p.mode === 'PRACTICE') {
+            let practiceLeft = Math.max(0, p.totalAllowed - p.userAttempts);
+            practiceBadge = p.isAllDone
+              ? `<span class="badge-pill badge-practice-done"><i class="fa-solid fa-ban"></i> Practice: Completed</span>`
+              : `<span class="badge-pill badge-practice-active"><i class="fa-solid fa-arrows-rotate"></i> Practice: ${practiceLeft} Left</span>`;
+          }
+
+          let btnHtml = p.isAllDone
+            ? `<button class="btn" style="background:#94a3b8; cursor:not-allowed;" disabled><i class="fa-solid fa-lock"></i> Completed</button>`
+            : `<button class="btn" style="background:#0b8ec5;" onclick="triggerPaperDownload('${p.paperId}', '${p.title}')">Start Exam <i class="fa-solid fa-arrow-right"></i></button>`;
+
+          card.innerHTML = `
+            <div style="flex:1; padding-right:16px;">
+              <div style="font-weight:700; font-size:16px; color:#0f172a; margin-bottom:4px;">${p.title}</div>
+              <div style="font-size:13px; color:#64748b; margin-bottom:6px;">40 Questions • 50 Minutes • Korean EPS TOPIK UBT</div>
+              <div class="badge-bar">${officialBadge} ${practiceBadge}</div>
+            </div>
+            <div>${btnHtml}</div>
+          `;
+          container.appendChild(card);
+        });
+      } catch(e) {
+        container.innerHTML = '<div style="color:red; text-align:center;">Failed to load papers.</div>';
+      }
+    }
+
+    async function triggerPaperDownload(paperId, paperTitle) {
+      selectedPaperId = paperId;
+      selectedPaperTitle = paperTitle;
+
+      const downloadModal = document.getElementById('download-progress-modal');
+      const progressFill = document.getElementById('download-progress-fill');
+      const percentLabel = document.getElementById('download-percent-label');
+
+      downloadModal.style.display = 'flex';
+      progressFill.style.width = '45%';
+      percentLabel.textContent = '45% (Loading Questions...)';
+
+      try {
+        const res = await fetch(`/api/papers/${paperId}/questions`);
+        if (!res.ok) throw new Error("Paper download error");
+        questions = await res.json();
+
+        progressFill.style.width = '100%';
+        percentLabel.textContent = '100% Downloaded!';
+
+        setTimeout(() => {
+          downloadModal.style.display = 'none';
+          openReadyStartModal(paperTitle);
+        }, 300);
+      } catch(e) {
+        downloadModal.style.display = 'none';
+        alert(e.message);
+      }
+    }
+
+    function openReadyStartModal(title) {
+      document.getElementById('ready-paper-title').textContent = title;
+      document.getElementById('ready-start-modal').style.display = 'flex';
+    }
+
+    function closeReadyStartModal() {
+      document.getElementById('ready-start-modal').style.display = 'none';
+    }
+
+    function confirmAndLaunchExam() {
+      closeReadyStartModal();
+      document.getElementById('view-paper-page').style.display = 'none';
+      document.getElementById('disp-paper-title').textContent = selectedPaperTitle;
+      document.getElementById('view-exam').style.display = 'flex';
+
+      loadAnswersFromLocalStorage();
+      renderQuestion();
+      startExamTimer();
+    }
+
+    function startExamTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerSeconds = 50 * 60;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        if (timerSeconds > 0) {
+          timerSeconds--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+          alert('කාලය අවසන් විය! පිළිතුරු ස්වයංක්‍රීයව Submit වේ.');
+          const jitter = Math.floor(Math.random() * 4000) + 1000;
+          setTimeout(() => submitExam(true), jitter);
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timerSeconds / 60);
+      const s = timerSeconds % 60;
+      document.getElementById('timer').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function renderQuestion() {
+      if (!questions || questions.length === 0) return;
+      const q = questions[currentIndex];
+
+      document.getElementById('disp-instruction').textContent = q.instruction;
+      document.getElementById('disp-prompt').textContent = q.prompt;
+
+      const passageEl = document.getElementById('disp-passage');
+      if (q.passage && q.passage.trim() !== '') {
+        passageEl.textContent = q.passage;
+        passageEl.style.display = 'block';
+      } else {
+        passageEl.style.display = 'none';
+      }
+
+      const mediaContent = document.getElementById('media-content');
+      mediaContent.innerHTML = '';
+
+      if (q.image) {
+        const img = document.createElement('img');
+        img.className = 'zoomable-img';
+        img.src = q.image;
+        attachZoomEvents(img, q.image);
+        mediaContent.appendChild(img);
+      }
+
+      if (q.type === 'listening' && q.audioScript) {
+        const audioKey = `q_${q.id}`;
+        const isPlayed = playedAudios.has(audioKey);
+
+        const audioBtn = document.createElement('div');
+        audioBtn.className = `audio-player-box ${isPlayed ? 'disabled' : ''}`;
+        audioBtn.innerHTML = isPlayed 
+          ? '<i class="fa-solid fa-check"></i> Audio Played (1/1)' 
+          : '<i class="fa-solid fa-volume-high"></i> Listen Audio (듣기 - 1 Time Only)';
+
+        if (!isPlayed) {
+          audioBtn.onclick = () => playSingleAudio(q.audioScript, audioKey, audioBtn);
+        }
+        mediaContent.appendChild(audioBtn);
+      }
+
+      const optContainer = document.getElementById('options-holder');
+      optContainer.innerHTML = '';
+
+      q.options.forEach((opt, idx) => {
+        const isSelected = userAnswers[currentIndex] === idx;
+        const card = document.createElement('div');
+        card.className = `option-card ${isSelected ? 'selected' : ''}`;
+        card.onclick = () => selectOption(idx);
+
+        let innerMedia = '';
+        if (opt.image) innerMedia += `<img src="${opt.image}" class="option-img" alt="opt">`;
+
+        if (opt.audio) {
+          const optAudioKey = `q_${q.id}_opt_${idx}`;
+          const isOptPlayed = playedAudios.has(optAudioKey);
+          innerMedia += `
+            <button class="opt-audio-btn ${isOptPlayed ? 'disabled' : ''}" 
+                    onclick="event.stopPropagation(); playSingleAudio('${opt.audio}', '${optAudioKey}', this)" 
+                    title="${isOptPlayed ? 'Played' : 'Play Audio'}">
+              <i class="fa-solid ${isOptPlayed ? 'fa-check' : 'fa-volume-high'}"></i>
+            </button>`;
+        }
+
+        card.innerHTML = `
+          <div class="option-number">${idx + 1}</div>
+          <div class="option-content-wrap">
+            <span class="option-text">${opt.text || ''}</span>
+            ${innerMedia}
+          </div>
+        `;
+        optContainer.appendChild(card);
+      });
+
+      updateHeaderCounts();
+      updateFooterButtons();
+    }
+
+    function playSingleAudio(srcOrText, audioKey, buttonElement) {
+      if (playedAudios.has(audioKey)) return;
+
+      if (currentActiveAudio) {
+        currentActiveAudio.pause();
+        currentActiveAudio = null;
+      }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+      playedAudios.add(audioKey);
+      buttonElement.classList.add('disabled');
+      buttonElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+      if (srcOrText.startsWith('data:audio') || srcOrText.startsWith('http') || srcOrText.endsWith('.mp3') || srcOrText.endsWith('.m4a')) {
+        const audio = new Audio(srcOrText);
+        currentActiveAudio = audio;
+        audio.onended = () => {
+          buttonElement.innerHTML = buttonElement.classList.contains('audio-player-box') ? '<i class="fa-solid fa-check"></i> Audio Played (1/1)' : '<i class="fa-solid fa-check"></i>';
+          currentActiveAudio = null;
+        };
+        audio.play().catch(e => console.error(e));
+        return;
+      }
+
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(srcOrText);
+        u.lang = 'ko-KR';
+        u.onend = () => {
+          buttonElement.innerHTML = buttonElement.classList.contains('audio-player-box') ? '<i class="fa-solid fa-check"></i> Audio Played (1/1)' : '<i class="fa-solid fa-check"></i>';
+        };
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    function updateFooterButtons() {
+      const leftBtn = document.getElementById('btn-left');
+      const centerBtn = document.getElementById('btn-center');
+      const rightBtn = document.getElementById('btn-right');
+
+      if (currentIndex === 0) {
+        leftBtn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i> Whole Page';
+        leftBtn.style.display = 'flex';
+        centerBtn.style.display = 'none';
+        rightBtn.innerHTML = 'Next <i class="fa-solid fa-arrow-right"></i>';
+      } else {
+        leftBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Previous';
+        leftBtn.style.display = 'flex';
+        centerBtn.style.display = 'flex';
+        rightBtn.innerHTML = (currentIndex === questions.length - 1) ? 'Submit <i class="fa-solid fa-check"></i>' : 'Next <i class="fa-solid fa-arrow-right"></i>';
+      }
+    }
+
+    function handleLeftBtn() {
+      if (currentIndex === 0) openGridModal();
+      else { currentIndex--; renderQuestion(); }
+    }
+
+    function handleRightBtn() {
+      if (currentIndex === questions.length - 1) submitExam(false);
+      else { currentIndex++; renderQuestion(); }
+    }
+
+    function selectOption(index) {
+      userAnswers[currentIndex] = index;
+      saveAnswersToLocalStorage();
+      renderQuestion();
+    }
+
+    function updateHeaderCounts() {
+      const answered = Object.keys(userAnswers).length;
+      document.getElementById('hdr-remaining').textContent = 40 - answered;
+    }
+
+    function attachZoomEvents(element, imgSrc) {
+      element.addEventListener('click', (e) => { e.stopPropagation(); openImageZoom(imgSrc); });
+    }
+
+    function openImageZoom(src) {
+      document.getElementById('image-zoom-target-wrapper').innerHTML = `<img src="${src}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="Zoomed">`;
+      document.getElementById('image-zoom-overlay').style.display = 'flex';
+    }
+
+    function closeImageZoom() {
+      document.getElementById('image-zoom-overlay').style.display = 'none';
+    }
+
+    function openGridModal() {
+      const rMatrix = document.getElementById('reading-matrix');
+      const lMatrix = document.getElementById('listening-matrix');
+      rMatrix.innerHTML = '';
+      lMatrix.innerHTML = '';
+
+      let solved = 0;
+      questions.forEach((q, idx) => {
+        const slot = document.createElement('div');
+        const isSolved = userAnswers[idx] !== undefined;
+        if (isSolved) solved++;
+
+        slot.className = `q-slot ${isSolved ? 'solved' : ''} ${idx === currentIndex ? 'current' : ''}`;
+        slot.textContent = q.id;
+        slot.onclick = () => { currentIndex = idx; renderQuestion(); closeGridModal(); };
+
+        if (q.type === 'reading') rMatrix.appendChild(slot);
+        else lMatrix.appendChild(slot);
+      });
+
+      document.getElementById('grid-solved').textContent = solved;
+      document.getElementById('grid-unsolved').textContent = 40 - solved;
+      document.getElementById('grid-modal').style.display = 'flex';
+    }
+
+    function closeGridModal() {
+      document.getElementById('grid-modal').style.display = 'none';
+    }
+
+    async function submitExam(isAuto = false) {
+      if (!isAuto && !confirm("විභාගය අවසන් කර පිළිතුරු Submit කිරීමට ඔබට විශ්වාසද?")) return;
+      closeGridModal();
+      if (timerInterval) clearInterval(timerInterval);
+
+      const syncModal = document.getElementById('sync-submitting-modal');
+      syncModal.style.display = 'flex';
+
+      try {
+        const res = await fetch('/api/student/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paperId: selectedPaperId,
+            paperTitle: selectedPaperTitle,
+            cardNo: studentCardNo,
+            studentName: studentName,
+            userAnswers: userAnswers
+          })
+        });
+        const result = await res.json();
+        syncModal.style.display = 'none';
+
+        if (res.ok) {
+          cleanExamStorage();
+          document.getElementById('res-student-name').textContent = studentName;
+          document.getElementById('res-student-nic').textContent = studentNic;
+          document.getElementById('res-student-card').textContent = studentCardNo;
+          document.getElementById('res-paper-title').textContent = selectedPaperTitle;
+          document.getElementById('res-correct-count').textContent = result.score;
+          document.getElementById('res-score-percentage').textContent = result.percentage;
+          
+          const statusEl = document.getElementById('res-exam-status');
+          statusEl.textContent = result.status;
+          statusEl.style.color = (result.status === 'PASS') ? '#16a34a' : '#dc2626';
+
+          document.getElementById('exam-results-modal').style.display = 'flex';
+        } else {
+          alert(result.detail || "Submission Error");
+        }
+      } catch(e) {
+        syncModal.style.display = 'none';
+        alert("Submission Network Error. Please try again.");
+      }
+    }
+
+    function closeResultsAndExit() {
+      document.getElementById('exam-results-modal').style.display = 'none';
+      document.getElementById('view-exam').style.display = 'none';
+      currentIndex = 0;
+      userAnswers = {};
+      playedAudios.clear();
+      showPaperSelectionWebPage();
+    }
+  </script>
+</body>
+</html>
